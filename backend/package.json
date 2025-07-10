@@ -4,7 +4,8 @@
   "description": "Backend for RPG Dungeon Crawler",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js",
+    "start": "node --env-file=.env --watch server.js",
+    "db:reset": "psql -d dungeon -f schema.sql",
     "dev": "nodemon server.js"
   },
   "dependencies": {

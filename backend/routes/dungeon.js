@@ -1,5 +1,5 @@
 const express = require('express');
-const db = require('../db');
+const {client} = require('../db');
 const { authenticateToken } = require('../middleware/auth');
 
 const router = express.Router();
@@ -39,7 +39,7 @@ router.get('/floor/:floor', async (req, res) => {
   try {
     const { floor } = req.params;
     
-    const result = await db.query(
+    const result = await client.query(
       'SELECT * FROM dungeons WHERE floor_number = $1',
       [floor]
     );
@@ -66,7 +66,7 @@ router.get('/progress/:characterId', async (req, res) => {
     const { characterId } = req.params;
     const userId = req.user.id;
     
-    const charResult = await db.query(
+    const charResult = await client.query(
       'SELECT current_floor FROM characters WHERE id = $1 AND user_id = $2',
       [characterId, userId]
     );
@@ -75,7 +75,7 @@ router.get('/progress/:characterId', async (req, res) => {
       return res.status(404).json({ error: 'Character not found' });
     }
     
-    const result = await db.query(
+    const result = await client.query(
       `SELECT dp.*, d.floor_number, d.width, d.height 
        FROM dungeon_progress dp 
        JOIN dungeons d ON dp.dungeon_id = d.id 
@@ -96,7 +96,7 @@ router.post('/explore', async (req, res) => {
     const { characterId, dungeonId, x, y } = req.body;
     const userId = req.user.id;
     
-    const charResult = await db.query(
+    const charResult = await client.query(
       'SELECT id FROM characters WHERE id = $1 AND user_id = $2',
       [characterId, userId]
     );
@@ -105,7 +105,7 @@ router.post('/explore', async (req, res) => {
       return res.status(404).json({ error: 'Character not found' });
     }
     
-    const progressResult = await db.query(
+    const progressResult = await client.query(
       'SELECT * FROM dungeon_progress WHERE character_id = $1 AND dungeon_id = $2',
       [characterId, dungeonId]
     );
@@ -121,12 +121,12 @@ router.post('/explore', async (req, res) => {
     }
     
     if (progressResult.rows.length > 0) {
-      await db.query(
+      await client.query(
         'UPDATE dungeon_progress SET explored_tiles = $1, updated_at = CURRENT_TIMESTAMP WHERE character_id = $2 AND dungeon_id = $3',
         [JSON.stringify(exploredTiles), characterId, dungeonId]
       );
     } else {
-      await db.query(
+      await client.query(
         'INSERT INTO dungeon_progress (character_id, dungeon_id, explored_tiles) VALUES ($1, $2, $3)',
         [characterId, dungeonId, JSON.stringify(exploredTiles)]
       );
@@ -141,7 +141,7 @@ router.post('/explore', async (req, res) => {
 
 router.get('/monsters', async (req, res) => {
   try {
-    const result = await db.query('SELECT * FROM monsters ORDER BY level');
+    const result = await client.query('SELECT * FROM monsters ORDER BY level');
     res.json(result.rows);
   } catch (error) {
     console.error(error);
@@ -151,7 +151,7 @@ router.get('/monsters', async (req, res) => {
 
 router.get('/items', async (req, res) => {
   try {
-    const result = await db.query('SELECT * FROM items ORDER BY type, rarity');
+    const result = await client.query('SELECT * FROM items ORDER BY type, rarity');
     res.json(result.rows);
   } catch (error) {
     console.error(error);

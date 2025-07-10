@@ -1,7 +1,7 @@
 const express = require('express');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const db = require('../db');
+const {client } = require('../db');
 
 const router = express.Router();
 
@@ -11,7 +11,7 @@ router.post('/register', async (req, res) => {
     
     const hashedPassword = await bcrypt.hash(password, 10);
     
-    const result = await db.query(
+    const result = await client.query(
       'INSERT INTO users (username, email, password_hash) VALUES ($1, $2, $3) RETURNING id, username, email',
       [username, email, hashedPassword]
     );
@@ -34,7 +34,7 @@ router.post('/login', async (req, res) => {
   try {
     const { username, password } = req.body;
     
-    const result = await db.query(
+    const result = await client.query(
       'SELECT id, username, email, password_hash FROM users WHERE username = $1',
       [username]
     );

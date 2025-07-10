@@ -1,5 +1,5 @@
 const express = require('express');
-const db = require('../db');
+const {client} = require('../db');
 const { authenticateToken } = require('../middleware/auth');
 
 const router = express.Router();
@@ -11,7 +11,7 @@ router.post('/create', async (req, res) => {
     const { name, characterClass } = req.body;
     const userId = req.user.id;
     
-    const result = await db.query(
+    const result = await client.query(
       `INSERT INTO characters (user_id, name, class) 
        VALUES ($1, $2, $3) 
        RETURNING *`,
@@ -29,7 +29,7 @@ router.get('/my-characters', async (req, res) => {
   try {
     const userId = req.user.id;
     
-    const result = await db.query(
+    const result = await client.query(
       'SELECT * FROM characters WHERE user_id = $1 ORDER BY created_at DESC',
       [userId]
     );
@@ -46,7 +46,7 @@ router.get('/:id', async (req, res) => {
     const { id } = req.params;
     const userId = req.user.id;
     
-    const result = await db.query(
+    const result = await client.query(
       'SELECT * FROM characters WHERE id = $1 AND user_id = $2',
       [id, userId]
     );
@@ -68,7 +68,7 @@ router.put('/:id/position', async (req, res) => {
     const { x, y } = req.body;
     const userId = req.user.id;
     
-    const result = await db.query(
+    const result = await client.query(
       `UPDATE characters 
        SET position_x = $1, position_y = $2 
        WHERE id = $3 AND user_id = $4 
@@ -93,7 +93,7 @@ router.put('/:id/stats', async (req, res) => {
     const { hp, mp, experience, level, gold } = req.body;
     const userId = req.user.id;
     
-    const result = await db.query(
+    const result = await client.query(
       `UPDATE characters 
        SET hp = COALESCE($1, hp), 
            mp = COALESCE($2, mp), 
@@ -121,7 +121,7 @@ router.get('/:id/inventory', async (req, res) => {
     const { id } = req.params;
     const userId = req.user.id;
     
-    const charCheck = await db.query(
+    const charCheck = await client.query(
       'SELECT id FROM characters WHERE id = $1 AND user_id = $2',
       [id, userId]
     );
@@ -130,8 +130,10 @@ router.get('/:id/inventory', async (req, res) => {
       return res.status(404).json({ error: 'Character not found' });
     }
     
-    const result = await db.query(
-      `SELECT i.*, it.* 
+    const result = await client.query(
+      `SELECT i.id as inventory_id, i.quantity, i.equipped, i.slot,
+              it.id as item_id, it.name, it.type, it.rarity, it.attack_bonus, 
+              it.defense_bonus, it.hp_restore, it.mp_restore, it.value, it.description
        FROM inventory i 
        JOIN items it ON i.item_id = it.id 
        WHERE i.character_id = $1`,
